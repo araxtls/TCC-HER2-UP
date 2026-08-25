@@ -1,1 +1,1 @@
-# Inteligência Artificial como Ferramenta para Redução da Variabilidade Interobservador no Diagnóstico Histopatológico e Imunohistoquímico de Câncer de Mama
+# Repercussões da Aplicação do Algoritmo Computacional Pixel Wise H-Score sobre a Concordância Interobservador na Graduação Imunohistoquímica de HER2 em Biópsias de Carcinoma Mamário Invasivo
