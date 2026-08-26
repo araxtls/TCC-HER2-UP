@@ -77,18 +77,11 @@ annotationStream.forEach { annotation ->
 
 //measure area of each class
 for (def annotation in annotations) {
-
-    double area1 = annotation.measurements["$measurementPrefix: 1+ area px^2"] ?: 0
-    double area2 = annotation.measurements["$measurementPrefix: 2+ area px^2"] ?: 0
-    double area3 = annotation.measurements["$measurementPrefix: 3+ area px^2"] ?: 0
-    double areaNeg = annotation.measurements["$measurementPrefix: Negative area px^2"] ?: 0
-
-    double areaDenom = area1 + area2 + area3 + areaNeg
-
-    if (areaDenom > 0) {
-        annotation.measurements['Pixelwise H-score'] =
-                (area1 + 2*area2 + 3*area3) / areaDenom * 100
-    }
+    double area1 = annotation.measurements["$measurementPrefix: 1+ area µm^2"]
+    double area2 = annotation.measurements["$measurementPrefix: 2+ area µm^2"]
+    double area3 = annotation.measurements["$measurementPrefix: 3+ area µm^2"]
+    double areaDenom = area1 + area2 + area3 + annotation.measurements["$measurementPrefix: Negative area µm^2"]
+    annotation.measurements['Pixelwise H-score'] = (area1 * 1 + area2 * 2 + area3 * 3)/(areaDenom)*100 //calculate H score
 }
 
 /**
