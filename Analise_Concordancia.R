@@ -396,6 +396,178 @@ grafico_heatmap_APP <- ggplot(
   tema_heatmap
 print(grafico_heatmap_APP)
 
+length(comparacao$APP_MO)
+length(comparacao$DX_QuPath)
+nrow(comparacao)
+
+matriz_QuPath0 <- table(   ## APP MO x QuPath
+  factor(comparacao$APP_MO, levels = categorias),
+  factor(comparacao$DX_QuPath, levels = categorias)
+)
+dados_heatmap_QuPath0 <- as.data.frame(matriz_QuPath0)
+
+colnames(dados_heatmap_QuPath0) <- c(
+  "MO APP", "QuPath", "Frequencia"
+)
+
+grafico_heatmap_QuPath0 <- ggplot(
+  dados_heatmap_QuPath0,
+  aes(x = QuPath, y = `MO APP`, fill = Frequencia)
+) +
+  geom_tile(color = "white", linewidth = 1) +
+  geom_text(
+    aes(label = Frequencia),
+    size = 5,
+    color = "black"
+  ) +
+  scale_fill_gradient(
+    low = "#FFF5F8",
+    high = "#FF82AB",
+    name = "Número de casos"
+  ) +
+  scale_x_discrete(
+    limits = categorias,
+    drop = FALSE
+  ) +
+  scale_y_discrete(
+    limits = rev(categorias),
+    drop = FALSE
+  ) +
+  labs(
+    title = "Concordância APP (MO) - QuPath",
+    x = "Análise digital isolada",
+    y = "Observador B (MO)"
+  ) +
+  coord_fixed() +
+  tema_heatmap
+print(grafico_heatmap_QuPath0)
+
+matriz_QuPath1 <- table(   ## APP QuPath x QuPath
+  factor(comparacao$APP_QuPath, levels = categorias),
+  factor(comparacao$DX_QuPath, levels = categorias)
+)
+dados_heatmap_QuPath1 <- as.data.frame(matriz_QuPath1)
+
+colnames(dados_heatmap_QuPath1) <- c(
+  "QuPath APP", "QuPath", "Frequencia"
+)
+
+grafico_heatmap_QuPath1 <- ggplot(
+  dados_heatmap_QuPath1,
+  aes(x = QuPath, y = `QuPath APP`, fill = Frequencia)
+) +
+  geom_tile(color = "white", linewidth = 1) +
+  geom_text(
+    aes(label = Frequencia),
+    size = 5,
+    color = "black"
+  ) +
+  scale_fill_gradient(
+    low = "#FFF5F8",
+    high = "#FF82AB",
+    name = "Número de casos"
+  ) +
+  scale_x_discrete(
+    limits = categorias,
+    drop = FALSE
+  ) +
+  scale_y_discrete(
+    limits = rev(categorias),
+    drop = FALSE
+  ) +
+  labs(
+    title = "Concordância APP (QuPath) - QuPath",
+    x = "Análise digital isolada",
+    y = "Observador B (Análise digital)"
+  ) +
+  coord_fixed() +
+  tema_heatmap
+print(grafico_heatmap_QuPath1)
+
+matriz_QuPath2 <- table(   ## APMS QuPath x QuPath
+  factor(comparacao$APMS_QuPath, levels = categorias),
+  factor(comparacao$DX_QuPath, levels = categorias)
+)
+dados_heatmap_QuPath2 <- as.data.frame(matriz_QuPath2)
+
+colnames(dados_heatmap_QuPath2) <- c(
+  "QuPath APMS", "QuPath", "Frequencia"
+)
+
+grafico_heatmap_QuPath2 <- ggplot(
+  dados_heatmap_QuPath2,
+  aes(x = QuPath, y = `QuPath APMS`, fill = Frequencia)
+) +
+  geom_tile(color = "white", linewidth = 1) +
+  geom_text(
+    aes(label = Frequencia),
+    size = 5,
+    color = "black"
+  ) +
+  scale_fill_gradient(
+    low = "#FFF5F8",
+    high = "#FF82AB",
+    name = "Número de casos"
+  ) +
+  scale_x_discrete(
+    limits = categorias,
+    drop = FALSE
+  ) +
+  scale_y_discrete(
+    limits = rev(categorias),
+    drop = FALSE
+  ) +
+  labs(
+    title = "Concordância APMS (QuPath) - QuPath",
+    x = "Análise digital isolada",
+    y = "Observador A (Análise digital)"
+  ) +
+  coord_fixed() +
+  tema_heatmap
+print(grafico_heatmap_QuPath2)
+
+matriz_QuPath3 <- table(   ## APMS MO x QuPath
+  factor(comparacao$APMS_MO, levels = categorias),
+  factor(comparacao$DX_QuPath, levels = categorias)
+)
+dados_heatmap_QuPath3 <- as.data.frame(matriz_QuPath3)
+
+colnames(dados_heatmap_QuPath3) <- c(
+  "MO APMS", "QuPath", "Frequencia"
+)
+
+grafico_heatmap_QuPath3 <- ggplot(
+  dados_heatmap_QuPath3,
+  aes(x = QuPath, y = `MO APMS`, fill = Frequencia)
+) +
+  geom_tile(color = "white", linewidth = 1) +
+  geom_text(
+    aes(label = Frequencia),
+    size = 5,
+    color = "black"
+  ) +
+  scale_fill_gradient(
+    low = "#FFF5F8",
+    high = "#FF82AB",
+    name = "Número de casos"
+  ) +
+  scale_x_discrete(
+    limits = categorias,
+    drop = FALSE
+  ) +
+  scale_y_discrete(
+    limits = rev(categorias),
+    drop = FALSE
+  ) +
+  labs(
+    title = "Concordância APMS (MO) - QuPath",
+    x = "Análise digital isolada",
+    y = "Observador A (MO)"
+  ) +
+  coord_fixed() +
+  tema_heatmap
+print(grafico_heatmap_QuPath3)
+
 ## GRAFICOS DE BARRAS AGRUPADAS
 dados_comparacao <- comparacao %>%
   select(APMS_MO, APP_MO, APMS_QuPath, APP_QuPath) %>%
