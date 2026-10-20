@@ -1,0 +1,236 @@
+## PACOTES NECESSÁRIOS
+library(readr)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(irr)
+library(psych)
+library(krippendorff) ##rever
+library(writexl)
+library(ggplot2)
+
+dados <- read_csv(
+  "/Users/rafaellatoledoaranha/Desktop/QUPATH_HER2.csv",
+  show_col_types = FALSE
+)
+glimpse(dados)
+
+categorias <- c("0", "0+", "1+", "2+") ## transformando categorias em valores ordinais
+categorias2 <- c("0", "0+", "1+")
+
+comparacao <- data.frame( ## data frame com os dados mais importantes renomeados
+  ID = dados[["ID IMUNO"]],
+  
+  APMS_MO = trimws(as.character(
+    dados[["APMS \n(SEM QUPATH)"]]
+  )),
+  
+  APP_MO = trimws(as.character(
+    dados[["APP \n(SEM QUPATH)"]]
+  )),
+  
+  APMS_QuPath = trimws(as.character(
+    dados[["APMS \n(COM QUPATH)"]]
+  )),
+  
+  APP_QuPath = trimws(as.character(
+    dados[["APP \n(COM QUPATH)"]]
+  )),
+  
+  DX_QuPath = trimws(as.character(
+    dados[["Qupath Dx"]]
+  ))
+)
+
+set.seed(1234) ## analise inferencial
+colunas <- c(
+  "APMS_MO",
+  "APP_MO",
+  "APMS_QuPath",
+  "APP_QuPath"
+)
+
+dados_inferenciais <- comparacao[
+  complete.cases(comparacao[, colunas]),
+  colunas,
+  drop = FALSE
+]
+
+dados_inferenciais[] <- lapply(
+  dados_inferenciais,
+  function(x) {
+    factor(
+      trimws(as.character(x)),
+      levels = categorias,
+      ordered = TRUE
+    )
+  }
+)
+n_casos <- nrow(dados_inferenciais)
+
+cat("Casos completos utilizados na análise inferencial:", n_casos, "\n")
+
+if (n_casos < 2) {
+  stop("Não há casos completos suficientes para realizar a análise.")
+}
+
+calcular_kappas_inter <- function(dados, ponderacao) {
+  
+  kappa_MO <- irr::kappa2(
+    dados[, c("APMS_MO", "APP_MO")],
+    weight = ponderacao
+  )$value
+  
+  kappa_QuPath <- irr::kappa2(
+    dados[, c("APMS_QuPath", "APP_QuPath")],
+    weight = ponderacao
+  )$value
+  
+  c(
+    Kappa_MO = kappa_MO,
+    Kappa_QuPath = kappa_QuPath,
+    Diferenca = kappa_QuPath - kappa_MO
+  )
+}
+
+observado_simples <- calcular_kappas_inter(
+  dados_inferenciais, "unweighted"
+)
+
+observado_linear <- calcular_kappas_inter(
+  dados_inferenciais, "equal"
+)
+
+observado_quadratico <- calcular_kappas_inter(
+  dados_inferenciais, "squared"
+)
+
+cat("\n--- Diferença observada: kappa não ponderado ---\n")
+print(round(observado_simples, 4))
+
+cat("\n--- Diferença observada: kappa ponderado linearmente ---\n")
+print(round(observado_linear, 4))
+
+cat("\n--- Diferença observada: kappa ponderado quadraticamente ---\n")
+print(round(observado_quadratico, 4))
+
+B <- 5000 ## bootstrap pareado por caso
+bootstrap_kappas <- function(dados, ponderacao, B = 5000) {
+  
+  n <- nrow(dados)
+  
+  resultados <- matrix(
+    NA_real_,
+    nrow = B,
+    ncol = 3,
+    dimnames = list(
+      NULL,
+      c("Kappa_MO", "Kappa_QuPath", "Diferenca")
+    )
+  )
+  
+  for (i in seq_len(B)) {
+    
+    # Reamostrar linhas inteiras: as quatro avaliações
+    # de cada caso permanecem juntas.
+    indices <- sample(
+      seq_len(n),
+      size = n,
+      replace = TRUE
+    )
+    
+    amostra <- dados[indices, , drop = FALSE]
+    
+    resultados[i, ] <- tryCatch(
+      calcular_kappas_inter(amostra, ponderacao),
+      error = function(e) rep(NA_real_, 3)
+    )
+  }
+  
+  as.data.frame(resultados)
+}
+
+boot_simples <- bootstrap_kappas(
+  dados_inferenciais, "unweighted", B
+)
+
+boot_linear <- bootstrap_kappas(
+  dados_inferenciais, "equal", B
+)
+
+boot_quadratico <- bootstrap_kappas(
+  dados_inferenciais, "squared", B
+)
+
+resumir_bootstrap <- function(observado, bootstrap, ponderacao) {
+  
+  diferencas <- bootstrap$Diferenca
+  diferencas <- diferencas[is.finite(diferencas)]
+  
+  if (length(diferencas) < 100) {
+    warning(
+      "Poucas replicações válidas para a ponderação: ",
+      ponderacao
+    )
+  }
+  
+  # IC de 95% pelo método percentil
+  IC <- quantile(
+    diferencas,
+    probs = c(0.025, 0.975),
+    na.rm = TRUE,
+    names = FALSE
+  )
+  
+  # Valor de p bilateral aproximado pelo bootstrap
+  delta_obs <- unname(observado["Diferenca"])
+  
+  p_inferior <- (
+    sum(diferencas <= 0) + 1
+  ) / (
+    length(diferencas) + 1
+  )
+  
+  p_superior <- (
+    sum(diferencas >= 0) + 1
+  ) / (
+    length(diferencas) + 1
+  )
+  
+  p_bootstrap <- min(
+    1,
+    2 * min(p_inferior, p_superior)
+  )
+  
+  data.frame(
+    Ponderacao = ponderacao,
+    Kappa_MO = unname(observado["Kappa_MO"]),
+    Kappa_QuPath = unname(observado["Kappa_QuPath"]),
+    Diferenca_QuPath_menos_MO = delta_obs,
+    IC95_inferior = IC[1],
+    IC95_superior = IC[2],
+    Valor_p_bootstrap = p_bootstrap,
+    Replicacoes_validas = length(diferencas),
+    Diferenca_significativa_IC95 = (
+      IC[1] > 0 || IC[2] < 0
+    )
+  )
+}
+
+tabela_inferencial <- rbind(
+  resumir_bootstrap(
+    observado_simples, boot_simples, "Não ponderado"
+  ),
+  resumir_bootstrap(
+    observado_linear, boot_linear, "Ponderado linear"
+  ),
+  resumir_bootstrap(
+    observado_quadratico, boot_quadratico, "Ponderado quadrático"
+  )
+)
+
+cat("\n========================================\n")
+cat("COMPARAÇÃO INFERENCIAL DOS MÉTODOS\n")
+cat("========================================\n")
+
+print(tabela_inferencial, digits = 4, row.names = FALSE)
